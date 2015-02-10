@@ -1,0 +1,175 @@
+Random Forest Language Model Toolkit
+
+Yi Su <suy@jhu.edu>
+
+o Introduction
+
+  The Random Forest Language Model Toolkit is a C++ software package based on
+  the SRI LM Toolkit (http://www.speech.sri.com/projects/srilm/). We follow 
+  the design philosophy and coding conventions of the SRI LM Toolkit and use 
+  their low-level data structure classes as well as some higher level 
+  procedural code to "stand on the shoulders of giants".
+
+  The Random Forest Language Model is a collection of randomized decision tree
+  language models with proven records of good performance. See the following
+  papers for reference:
+
+  Peng Xu and Frederick Jelinek. Random forests in language modeling. In 
+  Proceedings of EMNLP 2004, pages 325-332, Barcelona, Spain, 2004. 
+  Association for Computational Linguistics. 
+
+  Peng Xu. Random forests and the data sparseness problem in language modeling.
+  PhD thesis, Johns Hopkins University, 2005.
+
+  Yi Su, Frederick Jelinek, and Sanjeev Khudanpur. Large-scale random forest 
+  language models for speech recognition. In Proceedings of INTERSPEECH-2007, 
+  volume 1, pages 598-601, Antwerp, Belgium, 2007.
+
+  Yi Su. Knowledge intergration into language models: a random forest approach.
+  PhD thesis, Johns Hopkins University, 2009.
+
+o Contents
+  
+  You should find the following files and directories after unpacking:
+  
+  INSTALL	# installation guide
+  LICENSE	# legal stuff
+  README	# this file you are reading
+  /bin		
+  /doc		# generated Doxygen docs
+  /obj
+  /scripts	# bash scripts 
+  setup.pl	# script to set up working direcotries
+  /src		# C++ source code
+
+  See INSTALL for installation guide.
+
+o Tutorial/Recipe
+
+  I think the best way to get started is to show you a typical usage of this
+  toolkit. I assume that you have a working knowledge of SRI LM Toolkit. The
+  scripts under the /scripts directory are readily usable if you also use
+  Sun Grid Engine (SGE) as your parallel computing environment and it shouldn't
+  be hard to adapt them to run with other setup.
+
+  Scripts under the /scripts directory:
+  
+  functs.sh	# all bash function definitions; meat of the whole thing 
+  go.sh		# an example of the recipe
+  rf_ppl.sh	# average probabilities and compute perplexity
+  rf_train.sh 	# build trees and test them
+  run_rf.sh	# start an experiment run by submitting jobs to SGE 
+  txt2ngram.sh	# helper script to convert a text file into counts properly
+  vars.sh	# path names and parameters
+
+  Now the RECIPE:
+
+  0. Set up a directory structure used in the scripts.
+  
+     $ export WORK=<your working directory for rflm>
+     $ cd $SRILM/rflm
+     $ ./setup.pl $WORK $SRILM i686
+
+     Note that the third argument for ./setup.pl is the machine type you used
+     to install SRI LM Toolkit.
+
+  1. Clean up your data and devide them into training, heldout and testing. 
+
+     For example, I preprocess the WSJ portion of Penn Treebank by lowercasing
+     words, removing punctuations and collasping numbers to ``N'' token. Then I
+     use sections 00-20 for training, 21-22 for heldout and 23-24 for testing.
+
+     $WORK/data/upenn/text.00-20
+     $WORK/data/upenn/text.21-22
+     $WORK/data/upenn/text.23-24
+     
+     The first line of text.00-20 looks like (here it comes, mr. pierre 
+     vinken!):
+
+     <s> pierre vinken N years old will join the board as a nonexecutive 
+     director nov. N </s>
+
+  2. Generate counts from text using the script txt2ngram.sh, which calls
+     SRI LM Toolkit's ngram-count to do the job.
+
+     $ cd $WORK
+     $ ./scripts/txt2ngram.sh -o 3 data/upenn/text.00-20 \
+       data/upenn/counts/counts.00-20.3gm.gz
+     $ ./scripts/txt2ngram.sh -o 3 data/upenn/text.21-22 \
+       data/upenn/counts/counts.21-22.3gm.gz
+     $ ./scripts/txt2ngram.sh -o 3 -t data/upenn/text.23-24 \
+       data/upenn/counts/counts.23-24.3gm.gz
+
+     Note that you should use "-t" option to generate your test counts.
+
+  3. Get your vocabulary and put it under $WORK/dicts.
+
+     For exmaple, I use the 10K most frequent words as my vocabulary.
+
+     $WORK/dicts/upenn.10k.vocab
+
+  4. Train a Kneser-Ney-smoothed 3gram LM for backoff and bailout. 
+
+     Note that it is ok to include heldout data here and it gives a slightly
+     lower perplexity.
+
+     $ cd $WORK
+     $ cat data/upenn/text.00-20 data/upenn/text.21-22 > data/upenn/text.00-22
+     $ ./scripts/txt2ngram.sh -o 3 data/upenn/text.00-22 \
+       data/upenn/counts/counts.00-22.3gm.gz
+     
+     Now use a bash script to call the function trainLM in functs.sh 
+     (see go.sh):
+
+     mkdir -p $root/models/upenn/kn.3gm
+     order=3
+     vocab=$root/dicts/upenn.10k.vocab
+     train=$root/data/upenn/counts/counts.00-22.3gm.gz
+     dist=$root/models/upenn/kn.3gm/discount
+     lm=$root/models/upenn/kn.3gm/lm.kn.3gm.gz
+
+     trainLM $order $vocab $train $dist $lm
+     exit 1;
+
+     Note that you should also find files named discount.[123] under the model
+     direcotry $WORK/models/upenn/kn.3gm. They will be used in later steps.
+
+  5. Train and test a random forest language model.
+
+     $ ./scripts/run_rf.sh baseline
+     
+     Note that this script is using SGE for parallelization.
+
+  6. Check your result.
+
+     $ cat exps/upenn/baseline/ppl
+     file /home/yisu/Work/rflm-dev/data/upenn/counts/counts.23-24.3gm.gz: 
+     3761 sentences, 78669 words, 0 OOVs
+     0 zeroprobs, logprob= -174163 ppl= 129.674 ppl1= 163.631
+
+     Note that the aggregated probabilities on test ngrams is packed into an
+     ARPA-format LM in $WORK/exps/upenn/baseline/lm.gz .
+
+  That's it for a simple tutorial/recipe. Now you should start looking at those
+  scripts and source code to get your hands dirty.
+
+o Citing
+  
+  If you use this toolkit in research, I would appreciate if you could cite it
+  in a footnote or a bibliography like the following:
+
+  Yi Su. Random Forest Language Model Toolkit, http://www.clsp.jhu.edu/~yisu/rflm.html.
+
+o Copyright
+
+  The Random Forest Language Modeling Toolkit is subject to the SRILM Community
+  Research License Version 1.0 (the "License"); you may not use the files in
+  this toolkit except in compliance with the License. A copy of the License is 
+  included in the root directory.  Software distributed under the License is 
+  distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, either express
+  or implied. See the License for the specific language governing rights and 
+  limitations under the License.  This software is Copyright (c) SRI 
+  International, 1995-2008 and Copyright (c) Yi Su, 2005-2009.  All rights 
+  reserved.
+
+ 

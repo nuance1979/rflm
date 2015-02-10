@@ -1,0 +1,14 @@
+To-do list:
+
+- Update rfngram-count.cc with the latest SRI LM Toolkit; rfngram-count.cc 
+  is based on ngram-count.cc from SRI LM Toolkit 1.4.3; Same for rfngram.cc .
+
+- Client-server LM is now available in SRI LM Toolkit; should consolidate and
+  use theirs.
+
+- Read and write trees in binary format; should see speedup for large trees.
+
+DISCLAIMER
+  With high probability, I will *not* have time to do any of the above 
+  in the near future. Think of it as "what I think this toolkit could be
+  improved".

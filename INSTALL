@@ -1,0 +1,33 @@
+Random Forest Language Model Toolkit Installation Guide
+
+0. Install SRILM Toolkit (http://www.speech.sri.com/projects/srilm/). 
+
+1. Unpack rflm.tar.gz and put it under your SRILM top-level directory. 
+   For example,
+
+$ tar xzf rflm.tar.gz -C /Users/yisu/local/srilm-1.5.7
+   
+2. Set the SRILM variable in the Makefile to point to your SRILM top-level 
+   direcoty.
+
+$ emacs /Users/yisu/local/srilm-1.5.7/rflm/src/Makefile
+...
+SRILM=/Users/yisu/local/srilm-1.5.7
+...
+
+3. Build the RFLM Toolkit from the src directory.
+
+$ cd /Users/yisu/local/srilm-1.5.7/rflm/src
+$ make 
+$ make release
+
+4. Now you should be able to invoke the binaries from your main SRILM
+   binary path. For example,
+
+$ /Users/yisu/local/srilm-1.5.7/bin/macosx/rfngram-count -help
+
+Refer to the INSTALL file of the SRILM Toolkit for more options and information.
+
+Yi Su <suy@jhu.edu>
+03/30/2009
+
