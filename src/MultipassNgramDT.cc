@@ -240,7 +240,7 @@ MultipassNgramDT<CountT>::growSubtree(int rid, File &treeFile,
       backoffProb = this->backoffLM->wordProb(ngram[0], &ngram[1]);
       ngram[internalOrder-1] = tmp;
       
-      p->LogL += *count * wordProb(p->data, ngram[0], backoffProb);
+      p->LogL += *count * this->wordProb(p->data, ngram[0], backoffProb);
       p->heldoutSum += *count;
       Vocab::reverse(ngram);
     }
@@ -251,7 +251,7 @@ MultipassNgramDT<CountT>::growSubtree(int rid, File &treeFile,
     // Split the node
     left = new MultipassNgramDTNode<CountT>(); assert(left);
     right = new MultipassNgramDTNode<CountT>(); assert(right);
-    if (splitNode(*p, left, right, gain)) {
+    if (this->splitNode(*p, left, right, gain)) {
       p->left = left; p->right = right;
       
       // Pour down heldout data to children
@@ -319,15 +319,15 @@ MultipassNgramDT<CountT>::growSubtree(int rid, File &treeFile,
     this->dout() << "Dumping subtree " << rid << "...\n";
 
   dump(&treeFile, &outCountFile, &outHCountFile, rid);
-  fflush((FILE *)treeFile); fflush((FILE *)outCountFile);
+  treeFile.fflush(); outCountFile.fflush();
   //    treeFile.close(); outCountFile.close();
   
   TreeStats t;
-  treeStats(t, this->root);
+  this->treeStats(t, this->root);
   trStats.numNodes += t.numNodes - 1;
   trStats.numLeaves += t.numLeaves - 1;
   
-  freeTree(MROOT); this->root = 0; //MROOT = 0;
+  this->freeTree(MROOT); this->root = 0; //MROOT = 0;
 
   return finished;
 }
@@ -367,7 +367,7 @@ MultipassNgramDT<CountT>::growSubtreeShallow(int rid, File &treeFile,
     // Split the node
     left = new MultipassNgramDTNode<CountT>(); assert(left);
     right = new MultipassNgramDTNode<CountT>(); assert(right);
-    if (splitNode(*p, left, right, gain)) {
+    if (this->splitNode(*p, left, right, gain)) {
       p->left = left; p->right = right;
       
       // Save memory; double free safe
@@ -398,14 +398,14 @@ MultipassNgramDT<CountT>::growSubtreeShallow(int rid, File &treeFile,
     this->dout() << "Dumping subtree " << rid << "...\n";
 
   dump(&treeFile, 0, 0, rid);
-  fflush((FILE *)treeFile);
+  treeFile.fflush();
   
   TreeStats t;
-  treeStats(t, this->root);
+  this->treeStats(t, this->root);
   trStats.numNodes += t.numNodes - 1;
   trStats.numLeaves += t.numLeaves - 1;
   
-  freeTree(MROOT); this->root = 0; //MROOT = 0;
+  this->freeTree(MROOT); this->root = 0; //MROOT = 0;
 
   return finished;
 }
@@ -517,16 +517,16 @@ MultipassNgramDT<CountT>::dump(File *treeFile, File *countFile,
   if (MROOT == 0) return written;
   assert(rootId < 0);
 
-  if (treeFile) fprintf(*treeFile, "\\begin\\\n");
+  if (treeFile) treeFile->fprintf("\\begin\\\n");
   if (rootId != MROOT->id) {
     assert(MROOT->isLeaf()); assert(MROOT->id > 0);
     if (treeFile)
-      fprintf(*treeFile, "subtree %d = leaf %d %f %d\n", rootId, MROOT->id, 
+      treeFile->fprintf("subtree %d = leaf %d %f %d\n", rootId, MROOT->id, 
 	      MROOT->LogL, MROOT->heldoutSum);
     
   } else 
     written = dumpTree(treeFile, countFile, hCountFile, MROOT, idList);
-  if (treeFile) fprintf(*treeFile, "\\end\\\n");
+  if (treeFile) treeFile->fprintf("\\end\\\n");
 
   return written;
 }
@@ -541,17 +541,17 @@ MultipassNgramDT<CountT>::dumpTree(File *treeFile, File *countFile,
   Boolean written = false;
 
   if (p == 0) {
-    if (treeFile) fprintf(*treeFile, "null\n");
+    if (treeFile) treeFile->fprintf("null\n");
     return written;
   }
   
   if (treeFile) {
     if (p->id < 0)
-      fprintf(*treeFile, "subtree %d %f %d\n", p->id, p->LogL, p->heldoutSum);
+      treeFile->fprintf("subtree %d %f %d\n", p->id, p->LogL, p->heldoutSum);
     else if (p->id > 0)
-      fprintf(*treeFile, "leaf %d %f %d\n", p->id, p->LogL, p->heldoutSum);
+      treeFile->fprintf("leaf %d %f %d\n", p->id, p->LogL, p->heldoutSum);
     else 
-      fprintf(*treeFile, "node %f %d\n", p->LogL, p->heldoutSum);
+      treeFile->fprintf("node %f %d\n", p->LogL, p->heldoutSum);
   }
   
   if (treeFile) {
@@ -567,14 +567,14 @@ MultipassNgramDT<CountT>::dumpTree(File *treeFile, File *countFile,
       if (idList) idList->insert(p->id);
 
       if (countFile && p->counts != 0) {
-	fprintf(*countFile, "\\begin\\ subtree %d\n", p->id);
+	countFile->fprintf("\\begin\\ subtree %d\n", p->id);
 	p->counts->write(*countFile);
-	fprintf(*countFile, "\\end\\\n");
+	countFile->fprintf("\\end\\\n");
       }
       if (hCountFile && p->heldout != 0) {
-	fprintf(*hCountFile, "\\begin\\ subtree %d\n", p->id);
+	hCountFile->fprintf("\\begin\\ subtree %d\n", p->id);
 	p->heldout->write(*hCountFile); written = true;
-	fprintf(*hCountFile, "\\end\\\n");
+	hCountFile->fprintf("\\end\\\n");
       }
     }
   } else {
@@ -765,7 +765,7 @@ MultipassNgramDT<CountT>::prune(const double threshold)
     assert(treeFile);
     outFile = new File(getFN(treeFileName, i), "w"); assert(outFile);
 
-    while (feof((FILE *)(*treeFile)) == 0) {
+    while (treeFile->feof() == 0) {
       // Read in tree
       if (!load(*treeFile, 0, rootId)) {
 	cerr << "format error in tree file: " << treeFile->lineno << endl;
@@ -791,7 +791,7 @@ MultipassNgramDT<CountT>::prune(const double threshold)
       dump(outFile, 0, 0, rootId);
 
       // Free memory
-      freeTree(MROOT); this->root = 0; // MROOT = 0;
+      this->freeTree(MROOT); this->root = 0; // MROOT = 0;
     }
     
     delete outFile;
@@ -857,8 +857,8 @@ MultipassNgramDT<CountT>::compPtnlAndPrune(MultipassNgramDTNode<CountT> *p,
        anyway, I decide to settle for float as well.
     */
 
-    freeTree(p->left); p->left = 0;
-    freeTree(p->right); p->right = 0;
+    this->freeTree(p->left); p->left = 0;
+    this->freeTree(p->right); p->right = 0;
   }
 }
 
@@ -911,7 +911,7 @@ MultipassNgramDT<CountT>::write(File &file)
   while (!finished && i<numSteps) {
     treeFile = new File(getFN(treeFileName, i), "r"); assert(treeFile);
     
-    while (feof((FILE *)(*treeFile)) == 0) {
+    while (treeFile->feof() == 0) {
       if (!load(*treeFile, 0, rootId)) {
 	cerr << "format error in tree file: " << treeFile->lineno << endl;
 	exit(1);
@@ -925,7 +925,7 @@ MultipassNgramDT<CountT>::write(File &file)
 	idList.remove(rootId);
       }
       
-      freeTree(MROOT); this->root = 0;
+      this->freeTree(MROOT); this->root = 0;
     }
 
     delete treeFile;
@@ -963,7 +963,7 @@ MultipassNgramDT<CountT>::eval(NgramCounts<CountT> &testStats,
   /* But we don't want to destroy testStats */
   MROOT->heldout = new NgramCounts<CountT>(this->vocab, this->order);
 
-  unsigned tt = cloneCounts(*(MROOT->heldout), testStats);
+  unsigned tt = this->cloneCounts(*(MROOT->heldout), testStats);
   if (this->debug(DEBUG_GROW)) this->dout() << tt << " ngrams cloned.\n";
 
   outFile = new File(getFN(countFileName, 1), "w"); assert(outFile);
@@ -1096,7 +1096,7 @@ MultipassNgramDT<CountT>::evalSubtree(int rid, File &outCountFile,
   Boolean written = dump(0, &outCountFile, &outTCountFile, rid);
 
   // Free tree
-  freeTree(MROOT); this->root = 0;  
+  this->freeTree(MROOT); this->root = 0;  
 
   return written;
 }
@@ -1127,11 +1127,11 @@ MultipassNgramDT<CountT>::loadAndPourCounts()
       *(p->heldout->insertCount(ngram)) = *count;
 
       if (this->dumpfile != 0 && p->id > 0) { 
-	fprintf(*(this->dumpfile), "%d ", p->id);
-	fprintf(*(this->dumpfile), "%s", this->vocab.getWord(ngram[0]));
+	this->dumpfile->fprintf("%d ", p->id);
+	this->dumpfile->fprintf("%s", this->vocab.getWord(ngram[0]));
 	for(unsigned i=1; i<this->order; i++)
-	  fprintf(*(this->dumpfile), " %s", this->vocab.getWord(ngram[i]));
-	fprintf(*(this->dumpfile), "\n");
+	  this->dumpfile->fprintf(" %s", this->vocab.getWord(ngram[i]));
+	this->dumpfile->fprintf("\n");
       }
     }
   }
@@ -1162,11 +1162,11 @@ MultipassNgramDT<CountT>::loadAndPourCounts()
     }
 
     if (foundP && this->dumpfile != 0 && p->id > 0) {
-      fprintf(*(this->dumpfile), "%d ", p->id);
-      fprintf(*(this->dumpfile), "%s", this->vocab.getWord(ngram[0]));
+      this->dumpfile->fprintf("%d ", p->id);
+      this->dumpfile->fprintf("%s", this->vocab.getWord(ngram[0]));
       for(unsigned i=1; i<this->order; i++)
-	fprintf(*(this->dumpfile), " %s", this->vocab.getWord(ngram[i]));
-      fprintf(*(this->dumpfile), "\n");
+	this->dumpfile->fprintf(" %s", this->vocab.getWord(ngram[i]));
+      this->dumpfile->fprintf("\n");
     }
   }
   
@@ -1205,17 +1205,17 @@ MultipassNgramDT<CountT>::computeProbTree(MultipassNgramDTNode<CountT> *p,
       backoffProb = this->backoffLM->wordProb(ngram[0], &ngram[1]);
       ngram[internalOrder-1] = tmp;
       
-      lprob = wordProb(p->data, ngram[0], backoffProb);
+      lprob = this->wordProb(p->data, ngram[0], backoffProb);
       if (this->infoDumpFile != 0) { // Output detailed info for ngram comp.
 	assert(this->getSeenHistory());
 	if (this->getSeenFuture()) {
-	  fprintf(*(this->infoDumpFile), "seen");
+	  this->infoDumpFile->fprintf("seen");
 	} else {
-	  fprintf(*(this->infoDumpFile), "unseen_seen");
+	  this->infoDumpFile->fprintf("unseen_seen");
 	}
 	for (i=this->order-1; i>=0; i--)
-	  fprintf(*(this->infoDumpFile), " %s", this->vocab.getWord(ngram[i]));
-	fprintf(*(this->infoDumpFile), " %e\n", LogPtoProb(lprob));
+	  this->infoDumpFile->fprintf(" %s", this->vocab.getWord(ngram[i]));
+	this->infoDumpFile->fprintf(" %e\n", LogPtoProb(lprob));
       }
 
       // Save prob in lm

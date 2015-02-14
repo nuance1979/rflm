@@ -269,13 +269,13 @@ MultipassNgramDTLM::estimate2(NgramCounts<CountType> &stats,
 		  File *file = MTREE->getInfoDumpFile();
 		  if (file != 0) { // Output detailed info for ngram comput.
 		    if (i == order) 
-		      fprintf(*file, "unseen_history");
+		      file->fprintf("unseen_history");
 		    else 
-		      fprintf(*file, "lower_order");
+		      file->fprintf("lower_order");
 		    for (int j=i-2; j>=0; j--)
-		      fprintf(*file, " %s", vocab.getWord(context[j]));
-		    fprintf(*file, " %s", vocab.getWord(word[0]));
-		    fprintf(*file, " %e\n", prob);
+		      file->fprintf(" %s", vocab.getWord(context[j]));
+		    file->fprintf(" %s", vocab.getWord(word[0]));
+		    file->fprintf(" %e\n", prob);
 		  }
 
 		  double lowerOrderWeight;

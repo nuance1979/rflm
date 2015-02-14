@@ -1,0 +1,11 @@
+--- ../../misc/src/File.h	2013-03-21 02:31:23.000000000 -0400
++++ ../../include/File.h	2015-02-14 09:19:53.533901674 -0500
+@@ -110,6 +110,8 @@
+     size_t fwrite(const void *data, size_t size, size_t n);
+     long long ftell();
+     int fseek(long long offset, int origin);
++    int feof();
++    int fflush();
+ 
+     // get string contents from File() object, provided we are doing string I/O
+     const char *c_str();

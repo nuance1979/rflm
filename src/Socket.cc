@@ -13,7 +13,7 @@
 #include <string.h>
 #else
 #include <iostream>
-#include <string>
+#include <cstring>
 using namespace std;
 #endif
 

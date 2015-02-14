@@ -109,7 +109,7 @@ void
 NgramDecisionTree<CountT>::printStats()
 {
   TreeStats s;
-  treeStats(s, this->root);
+  this->treeStats(s, this->root);
   dout() << "numNodes: " << s.numNodes
 	 << ", numLeaves: " << s.numLeaves
 	 << ", depth: " << s.depth
@@ -213,16 +213,16 @@ NgramDecisionTree<CountT>::writeTree(File &file,
 				     NgramDecisionTreeNode<CountT> *p)
 {
   if (p == 0) { 
-    fprintf(file, "null\n"); 
+    file.fprintf("null\n"); 
     return; 
   }
 
   if (p->isLeaf()) {
-    fprintf(file, "leaf\n");
+    file.fprintf("leaf\n");
     assert(p->question != 0);
     QUESTION(p->question)->writeText(file, vocab);
   } else {
-    fprintf(file, "node\n");
+    file.fprintf("node\n");
     assert(p->question != 0);
     QUESTION(p->question)->writeText(file, vocab);
     writeTree(file, NODE(p->left));
@@ -787,8 +787,8 @@ NgramDecisionTree<CountT>::pruneTree(NgramDecisionTreeNode<CountT> *p)
        anyway, I decide to settle for float as well.
     */
 
-    freeTree(p->left); p->left = 0;
-    freeTree(p->right); p->right = 0;
+    this->freeTree(p->left); p->left = 0;
+    this->freeTree(p->right); p->right = 0;
   }
 }				     
 

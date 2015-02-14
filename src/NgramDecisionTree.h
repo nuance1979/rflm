@@ -62,7 +62,7 @@ class Element {
     CountT totalCount = 0, *cnt;
     min2Vocab = 0; min3Vocab = 0;
 
-    while (cnt = iter.next(wd)) {
+    while ((cnt = iter.next(wd))) {
       if (*cnt > 0) observedVocab++;
       if (*cnt >= 2) min2Vocab++;
       if (*cnt >= 3) min3Vocab++;

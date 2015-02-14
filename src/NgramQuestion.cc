@@ -79,11 +79,11 @@ NgramQuestion::readText(File &file, Vocab &vocab)
 void
 NgramQuestion::writeText(File &file, Vocab &vocab)
 {
-  fprintf(file, "%d", position);
+  file.fprintf("%d", position);
   VocabIndex wd;
   SetTypeIter iter(setS);
   while (iter.next(wd))
-    fprintf(file, " %s", vocab.getWord(wd)); 
-  fprintf(file, "\n");
+    file.fprintf(" %s", vocab.getWord(wd)); 
+  file.fprintf("\n");
 }
 
