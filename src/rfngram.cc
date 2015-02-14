@@ -483,7 +483,7 @@ dumpProb(LM &lm, File &fileIn, File &fileOut)
     Vocab::reverse(wids);
     prob = lm.wordProb(wids[0], &wids[1]);
 
-    fprintf(fileOut, "%e\n", LogPtoProb(prob));
+    fileOut.fprintf("%e\n", LogPtoProb(prob));
   }
 }
 

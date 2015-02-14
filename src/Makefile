@@ -20,14 +20,14 @@
 #    $Header: /home/yisu/cvsroot/rflm/src/Makefile,v 1.4 2009/04/04 23:53:47 yisu Exp $
 #
 
-SRILM=/Users/yisu/local/srilm-1.5.10
+SRILM=/home/yisu/Work/srilm
 
 # Include common SRILM variable definitions.
 include $(SRILM)/common/Makefile.common.variables
 
 # This should enable locale-specific string collation for vocabulary sorting
 # (it will slow things down somewhat).
-ADDITIONAL_CXXFLAGS = 
+ADDITIONAL_CXXFLAGS = -fopenmp
 
 # Flags for generating "compact" data structures
 COMPACT_FLAGS += -DUSE_SARRAY -DUSE_SARRAY_TRIE -DUSE_SARRAY_MAP2
@@ -89,7 +89,9 @@ OTHER_LIBRARIES = \
 	-loolm \
 	-lflm \
 	-ldstruct \
-	-lmisc
+	-lmisc \
+	-llbfgs \
+	-lz
 
 ADDITIONAL_LIBRARIES += \
 	$(OTHER_LIBRARIES) \

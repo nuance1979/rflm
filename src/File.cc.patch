@@ -1,0 +1,49 @@
+--- /tmp/srilm/misc/src/File.cc	2013-05-24 12:07:25.000000000 -0400
++++ srilm/misc/src/File.cc	2015-02-14 15:21:05.721983225 -0500
+@@ -219,7 +219,7 @@
+     	return false;
+     }
+ 
+-    if (fflush(fp) != 0) {
++    if (::fflush(fp) != 0) {
+ 	if (exitOnError != 0) {
+ 	    perror(name ? name : "");
+ 	    exit(exitOnError);
+@@ -715,6 +715,32 @@
+     return 0;
+ }
+ 
++int
++File::feof()
++{
++  if (gzf) {
++    return gzeof(gzf);
++  } else if (fp) {
++    return ::feof(fp);
++  }
++
++  // not supported for output to string
++  return 0;
++}
++
++int
++File::fflush()
++{
++  if (gzf) {
++    return gzflush(gzf, Z_SYNC_FLUSH);
++  } else if (fp) {
++    return ::fflush(fp);
++  }
++
++  // not supported for output to string
++  return 0;
++}
++
+ long long
+ File::ftell()
+ {
+@@ -792,4 +818,3 @@
+ 
+     return strFile.length();
+ }
+-
